@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capture</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        video, canvas {
+            max-width: 100%;
+            width: 300px;
+            height: auto;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .btn-container {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #permissionStatus {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Camera Capture</h1>
+
+    <video id="camera" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    <p id="permissionStatus">Camera access is blocked. Please enable it in your browser settings.</p>
+
+    <div class="btn-container">
+        <button id="openCamera">Open Camera</button>
+        <button id="closeCamera">Close Camera</button>
+        <button id="captureImage">Capture Image</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('camera');
+        const canvas = document.getElementById('canvas');
+        const openCameraBtn = document.getElementById('openCamera');
+        const closeCameraBtn = document.getElementById('closeCamera');
+        const captureImageBtn = document.getElementById('captureImage');
+        const permissionStatus = document.getElementById('permissionStatus');
+        let stream;
+
+        // Function to check permissions
+        async function checkPermissions() {
+            try {
+                const permission = await navigator.permissions.query({ name: 'camera' });
+                if (permission.state === 'denied') {
+                    permissionStatus.style.display = 'block';
+                } else {
+                    permissionStatus.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Permission check error:', error);
+            }
+        }
+
+        // Open camera with permission check
+        openCameraBtn.addEventListener('click', async () => {
+            await checkPermissions(); // Check if camera permission is blocked
+
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: 'environment', // Use 'user' for front camera or 'environment' for rear
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                video.style.display = 'block';
+                closeCameraBtn.style.display = 'inline-block';
+                captureImageBtn.style.display = 'inline-block';
+                permissionStatus.style.display = 'none'; // Hide any previous error message
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                permissionStatus.style.display = 'block';
+                alert('Unable to access the camera. Please ensure you have granted camera permissions in your browser settings.');
+            }
+        });
+
+        // Close camera
+        closeCameraBtn.addEventListener('click', () => {
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.style.display = 'none';
+                closeCameraBtn.style.display = 'none';
+                captureImageBtn.style.display = 'none';
+            }
+        });
+
+        // Capture image
+        captureImageBtn.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert to PNG and download
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = 'captured_image.png';
+            link.click();
+        });
+
+        // Handle mobile device orientation and playsinline issue
+        video.setAttribute('playsinline', 'true'); // Important for iOS to prevent fullscreen on video play
+    </script>
+
+</body>
+</html>
