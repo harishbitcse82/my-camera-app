@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Capture</title>
+    <title>Camera Capture with Image Editing</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,7 +23,7 @@
             display: none;
         }
 
-        .btn-container {
+        .btn-container, .filter-container {
             margin-top: 20px;
         }
 
@@ -47,15 +47,48 @@
             margin-top: 10px;
             display: none;
         }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 250px;
+            margin-top: 10px;
+        }
+
+        .filter-container input[type="range"] {
+            width: 250px;
+        }
+
+        label {
+            font-size: 14px;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Camera Capture</h1>
+    <h1>Camera Capture with Image Editing</h1>
 
     <video id="camera" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
     <p id="permissionStatus">Camera access is blocked. Please enable it in your browser settings.</p>
+
+    <input type="text" id="fileName" placeholder="Enter file name (e.g., my_image)" />
+
+    <div class="filter-container">
+        <div>
+            <label for="brightness">Brightness:</label>
+            <input type="range" id="brightness" min="0" max="200" value="100">
+        </div>
+        <div>
+            <label for="contrast">Contrast:</label>
+            <input type="range" id="contrast" min="0" max="200" value="100">
+        </div>
+        <div>
+            <label for="grayscale">Grayscale:</label>
+            <input type="range" id="grayscale" min="0" max="100" value="0">
+        </div>
+    </div>
 
     <div class="btn-container">
         <button id="openCamera">Open Camera</button>
@@ -70,6 +103,10 @@
         const closeCameraBtn = document.getElementById('closeCamera');
         const captureImageBtn = document.getElementById('captureImage');
         const permissionStatus = document.getElementById('permissionStatus');
+        const fileNameInput = document.getElementById('fileName');
+        const brightnessInput = document.getElementById('brightness');
+        const contrastInput = document.getElementById('contrast');
+        const grayscaleInput = document.getElementById('grayscale');
         let stream;
 
         // Function to check permissions
@@ -122,18 +159,36 @@
             }
         });
 
+        // Apply filters
+        function applyFilters(context) {
+            const brightness = brightnessInput.value;
+            const contrast = contrastInput.value;
+            const grayscale = grayscaleInput.value;
+
+            context.filter = `
+                brightness(${brightness}%)
+                contrast(${contrast}%)
+                grayscale(${grayscale}%)
+            `;
+        }
+
         // Capture image
         captureImageBtn.addEventListener('click', () => {
             const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+
+            // Apply image filters before drawing on canvas
+            applyFilters(context);
+
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Convert to PNG and download
+            // Convert to PNG and download with custom file name
             const dataURL = canvas.toDataURL('image/png');
             const link = document.createElement('a');
+            const fileName = fileNameInput.value.trim() || 'captured_image'; // Default name if no input
             link.href = dataURL;
-            link.download = 'captured_image.png';
+            link.download = fileName + '.png';
             link.click();
         });
 
